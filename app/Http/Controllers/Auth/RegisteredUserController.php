@@ -31,17 +31,25 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:buyer,seller'], 
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'status' => $request->role === 'seller' ? 'pending' : 'approved',
+     
         ]);
 
         event(new Registered($user));
+        if ($user->role === 'seller' && $user->status === 'pending') {
+            return redirect()->route('seller.pending')->with('message', 'Akun Anda sedang ditinjau oleh Admin.');
+        }
+
 
         Auth::login($user);
 
